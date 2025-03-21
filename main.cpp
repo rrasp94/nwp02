@@ -1,11 +1,27 @@
 #include "nwpwin.h"
 #include "res.h"
 
-// TODO: prepare classes (edit, button, list_box) for child windows
-// TODO: derive from window, override class_name
+class button : public vsite::nwp::window {
+protected:
+	std::string class_name() override { return "BUTTON"; }
+};
+
+class edit : public vsite::nwp::window {
+protected:
+	std::string class_name() override { return "EDIT"; }
+};
+
+class list_box : public vsite::nwp::window {
+protected:
+	std::string class_name() override { return "LISTBOX"; }
+};
 
 class main_window : public vsite::nwp::window
 {
+	edit edt;
+	button btn_add, btn_remove;
+	list_box lst;
+
 protected:
 	int on_create(CREATESTRUCT* pcs) override;
 	void on_command(int id) override;
@@ -14,29 +30,52 @@ protected:
 
 int main_window::on_create(CREATESTRUCT* pcs)
 {
-	// TODO: create all child windows
-	// TODO: disable "Remove" button
-	return 0;
+	{
+		edt.create(*this, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, IDC_EDIT, 10, 10, 200, 25);
+		lst.create(*this, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, IDC_LB, 10, 50, 200, 100);
+		btn_add.create(*this, WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, "Add", IDC_ADD, 220, 10, 100, 30);
+		btn_remove.create(*this, WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON, "Remove", IDC_REMOVE, 220, 50, 100, 30);
+
+		::EnableWindow(btn_remove, FALSE);
+
+		return 0;
+	}
+	
 }
 
 void main_window::on_command(int id){
 	switch(id){
 		case ID_FILE_EXIT:
-			// TODO: close main window
+			on_destroy();
 			break;
 		case ID_HELP_ABOUT:
-			// TODO: show dialog with text
+			MessageBox(*this, "Add -> add to list\nRemove -> removes from list.", "Help", MB_OK | MB_ICONINFORMATION);
 			break;
 		case IDC_ADD:
-			// TODO: get text from edit control
-			// TODO: add string to listbox control
-			// TODO: enable "Remove" button
+		{
+			char text[256];
+			::GetDlgItemText(*this, IDC_EDIT, text, sizeof(text));
+			if (strlen(text) > 0)
+			{
+				::SendDlgItemMessage(*this, IDC_LB, LB_ADDSTRING, 0, (LPARAM)text);
+				::EnableWindow(btn_remove, TRUE);
+			}
 			break;
+		}
 		case IDC_REMOVE:
-			// TODO: get listbox selection
-			// TODO: if there is a selection, delete selected string
-			// TODO: disable "Remove" button if listbox is empty
+		{
+			int selected = ::SendDlgItemMessage(*this, IDC_LB, LB_GETCURSEL, 0, 0);
+			if (selected != LB_ERR)
+			{
+				::SendDlgItemMessage(*this, IDC_LB, LB_DELETESTRING, selected, 0);
+				int count = ::SendDlgItemMessage(*this, IDC_LB, LB_GETCOUNT, 0, 0);
+				if (count == 0)
+				{
+					::EnableWindow(btn_remove, FALSE);
+				}
+			}
 			break;
+		}
 	}
 }
 
